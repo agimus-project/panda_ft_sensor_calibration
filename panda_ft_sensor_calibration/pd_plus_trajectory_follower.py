@@ -125,7 +125,7 @@ class PDPlusTrajectoryFollower(Node):
             if not skip_parameter_update:
                 self._param_listener.refresh_dynamic_parameters()
                 self._params = self._param_listener.get_params()
-                self.get_logger().info("Parameter change occurred!")
+                self.get_logger().info("Parameter change occurred!", skip_first=True)
 
             # Parse parameters
             self._p_gains = np.array(
@@ -141,6 +141,12 @@ class PDPlusTrajectoryFollower(Node):
                 ]
             )
             self._pd_gains = np.hstack((np.diag(self._p_gains), np.diag(self._d_gains)))
+
+            if self._params.recording_mode and self._initial_configuration_reached:
+                self._p_gains *= self._params.recording_mode_pd_scale
+                self._pd_gains[: self._robot_model.nq, : self._robot_model.nq] *= (
+                    self._params.recording_mode_pd_scale
+                )
 
     def _robot_description_cb(self, msg: String) -> None:
         """Callback called when robot description was received. URDF is parsed by pinocchio
@@ -177,7 +183,7 @@ class PDPlusTrajectoryFollower(Node):
         """
         self._sensor_msg = msg
 
-    def _reference_sensor(self, msg: Sensor) -> None:
+    def _reference_sensor_cb(self, msg: Sensor) -> None:
         """Callback called on every reference robot state message received.
             Message is converted to numpy representation on every callback.
 
@@ -218,32 +224,37 @@ class PDPlusTrajectoryFollower(Node):
 
         sensor = sensor_msg_to_numpy(self._sensor_msg)
 
-        if self._params.move_to_initial_configuration or self._params.recording_mode:
+        if (
+            self._params.move_to_initial_configuration
+            and not self._initial_configuration_reached
+        ):
             target = self._initial_configuration
-            if not not self._initial_configuration_reached:
-                # Check if configuration was reached
-                config_diff = target.joint_state.position - sensor.joint_state.position
-                config_diff = np.minimum(2.0 * np.pi - config_diff, config_diff)
-                if (
-                    np.sum(np.abs(config_diff))
-                    < self._params.initial_configuration_tolerance
-                    and np.sum(np.abs(sensor.joint_state.velocity))
-                    < self._params.initial_configuration_tolerance
-                ):
-                    self._initial_configuration_reached = True
-                    self.get_logger().info("Initial configuration reached.")
-                    if self._params.recording_mode:
-                        self.get_logger().info("Robot is now controllable by human.")
-                    else:
-                        self.get_logger().info("Starting to follow the trajectory.")
+            # Check if configuration was reached
+            config_diff = target.joint_state.position - sensor.joint_state.position
+            config_diff = np.minimum(2.0 * np.pi - config_diff, config_diff)
+            if (
+                np.max(np.abs(config_diff))
+                < self._params.initial_configuration_tolerance
+                and np.max(np.abs(sensor.joint_state.velocity))
+                < self._params.initial_configuration_tolerance
+            ):
+                self._initial_configuration_reached = True
+                self.get_logger().info("Initial configuration reached.")
+                if self._params.recording_mode:
+                    # In recording mode make the robot easy to control
+                    # and only slightly try to push it back to the initial position
+                    self._p_gains *= self._params.recording_mode_pd_scale
+                    self._pd_gains[: self._robot_model.nq, : self._robot_model.nq] *= (
+                        self._params.recording_mode_pd_scale
+                    )
+                    self.get_logger().info("Robot is now controllable by human.")
+                else:
+                    self.get_logger().info("Starting to follow the trajectory.")
         else:
-            target = self._reference_sensor
-            # In recording mode make easy to control and only slightly try to go back
-            # to initial position
-            if self._params.recording_mode:
-                self._p_gains *= self._params.recording_mode_pd_scale
-                self._d_gains *= self._params.recording_mode_pd_scale
-                self._pd_gains *= self._params.recording_mode_pd_scale
+            if not self._params.recording_mode:
+                target = self._reference_sensor
+            else:
+                target = self._initial_configuration
 
         delta_q = target.joint_state.position - sensor.joint_state.position
         delta_dq = target.joint_state.velocity - sensor.joint_state.velocity

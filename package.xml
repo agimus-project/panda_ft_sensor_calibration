@@ -23,13 +23,14 @@
   <depend>net_ft_description</depend>
   <depend>rclpy</depend>
   <depend>xacro</depend>
+  <depend>pinocchio</depend>
 
   <!-- Run-time dependencies -->
   <exec_depend>ros2bag</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
-  <exec_depend>pinocchio</exec_depend>
+  <exec_depend>topic_tools</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>

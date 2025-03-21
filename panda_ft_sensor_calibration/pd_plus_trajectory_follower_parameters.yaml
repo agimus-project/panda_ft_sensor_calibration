@@ -2,6 +2,7 @@ pd_plus_trajectory_follower:
   moving_joint_names:
     type: string_array
     description: "List of active joint names used by the controller."
+    read_only: true
     validation:
       not_empty<>: []
   __map_moving_joint_names:

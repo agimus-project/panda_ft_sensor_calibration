@@ -36,4 +36,5 @@
       p: 5.0
       d: 1.0
       q_init: 0.785
+    recording_mode_pd_scale: 0.1
     controller_period: 0.01

@@ -10,6 +10,7 @@ from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
+    LogInfo,
     OpaqueFunction,
     RegisterEventHandler,
 )
@@ -55,13 +56,31 @@ def launch_setup(
         output="screen",
     )
 
+    # Throttle sensor readings to 100 Hz to save space on rosbags
+    sensor_message_throttle_node = Node(
+        package="topic_tools",
+        executable="throttle",
+        arguments=["messages"],
+        parameters=[
+            get_use_sim_time(),
+            {
+                "input_topic": "/sensor",
+                "output_topic": "/sensor/throttled",
+                "msgs_per_sec": 100.0,
+                "use_wall_clock": True,
+            },
+        ],
+        output="screen",
+    )
+
     record_rosbag_process = ExecuteProcess(
-        cmd=["ros2", "bag", "record", "-o", output_rosbag_path, "/sensor"],
+        cmd=["ros2", "bag", "record", "-o", output_rosbag_path, "/sensor/throttled"],
         output="screen",
     )
 
     return [
         franka_robot_launch,
+        sensor_message_throttle_node,
         wait_for_non_zero_joints_node,
         RegisterEventHandler(
             event_handler=OnProcessExit(
@@ -69,14 +88,16 @@ def launch_setup(
                 on_exit=[pd_plus_trajectory_follower],
             )
         ),
+        # Start recording when robot is in the initial configuration
         RegisterEventHandler(
             event_handler=OnProcessIO(
                 target_action=pd_plus_trajectory_follower,
-                on_stdout=lambda event: (
+                # log info is directed to stderr
+                on_stderr=lambda event: (
                     None
                     if "Initial configuration reached."
                     not in event.text.decode().strip()
-                    else record_rosbag_process
+                    else [record_rosbag_process]
                 ),
             )
         ),

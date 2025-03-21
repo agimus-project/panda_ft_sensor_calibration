@@ -13,7 +13,7 @@ from launch.actions import (
     OpaqueFunction,
     RegisterEventHandler,
 )
-from launch.event_handlers import OnProcessExit, OnProcessIO
+from launch.event_handlers import OnProcessExit, OnProcessIO, OnProcessStart
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 
@@ -83,7 +83,8 @@ def launch_setup(
             rosbag_replay_rate,
             "--read-ahead-queue-size",
             "1000",
-            "--remap/sensor:=/reference/sensor",
+            "--remap",
+            "/sensor/throttled:=/reference/sensor",
             "--wait-for-all-acked",
             "10.0",
         ],
@@ -102,12 +103,20 @@ def launch_setup(
         RegisterEventHandler(
             event_handler=OnProcessIO(
                 target_action=pd_plus_trajectory_follower,
-                on_stdout=lambda event: (
+                # log info is directed to stderr
+                on_stderr=lambda event: (
                     None
                     if "Initial configuration reached."
                     not in event.text.decode().strip()
-                    else [record_rosbag_process, playback_rosbag_process]
+                    else [record_rosbag_process]
                 ),
+            )
+        ),
+        # Start playback once recording started
+        RegisterEventHandler(
+            event_handler=OnProcessStart(
+                target_action=record_rosbag_process,
+                on_start=playback_rosbag_process,
             )
         ),
     ]
