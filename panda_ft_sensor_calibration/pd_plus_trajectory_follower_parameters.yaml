@@ -1,0 +1,49 @@
+pd_plus_trajectory_follower:
+  moving_joint_names:
+    type: string_array
+    description: "List of active joint names used by the controller."
+    validation:
+      not_empty<>: []
+  __map_moving_joint_names:
+    p:
+      type: double
+      description: "Proportional gains for the PD controller."
+      validation:
+        gt_eq<>: 0.0
+    d:
+      type: double
+      description: "Derivation gains for the PD controller."
+      validation:
+        gt_eq<>: 0.0
+    q_init:
+      type: double
+      description: "Initial configuration of the joint."
+      read_only: true
+      validation:
+        gt_eq<>: -3.14
+        lt_eq<>: 3.14
+  move_to_initial_configuration:
+    type: bool
+    default_value: true
+    description: "Move to initial pose at the start of the node."
+    read_only: true
+  initial_configuration_tolerance:
+    type: double
+    default_value: 0.01
+    description: "Absolute tolerance on joint positions and velocity to consider robot reached initial configuration."
+    read_only: true
+  recording_mode:
+    type: bool
+    default_value: False
+    description: "Sets controller in the recording mode. After initial pose is reached, controller will forward zero torques to the robot."
+    read_only: true
+  recording_mode_pd_scale:
+    type: double
+    default_value: 0.01
+    description: "Value used to multiply PD gains when robot is in recording mode."
+    read_only: true
+  controller_frequency:
+    type: double
+    default_value: 100.0
+    description: "Frequency at which controller will be running."
+    read_only: true
