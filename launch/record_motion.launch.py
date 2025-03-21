@@ -9,19 +9,21 @@ from launch_ros.substitutions import FindPackageShare
 from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    ExecuteProcess,
     OpaqueFunction,
     RegisterEventHandler,
 )
-from launch.event_handlers import OnProcessExit
+from launch.event_handlers import OnProcessExit, OnProcessIO
 from launch.launch_description_entity import LaunchDescriptionEntity
-from launch.substitutions import (
-    PathJoinSubstitution,
-)
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 
 
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
+    output_rosbag_path = LaunchConfiguration("output_rosbag_path")
+    move_to_initial_configuration = LaunchConfiguration("move_to_initial_configuration")
+
     franka_robot_launch = generate_include_franka_launch("franka_common_lfc.launch.py")
 
     pd_plus_trajectory_follower_params = PathJoinSubstitution(
@@ -45,8 +47,16 @@ def launch_setup(
         parameters=[
             get_use_sim_time(),
             pd_plus_trajectory_follower_params,
-            {"recording_mode": True}.items(),
+            {
+                "recording_mode": True,
+                "move_to_initial_configuration": move_to_initial_configuration,
+            },
         ],
+        output="screen",
+    )
+
+    record_rosbag_process = ExecuteProcess(
+        cmd=["ros2", "bag", "record", "-o", output_rosbag_path, "/sensor"],
         output="screen",
     )
 
@@ -59,15 +69,35 @@ def launch_setup(
                 on_exit=[pd_plus_trajectory_follower],
             )
         ),
+        RegisterEventHandler(
+            event_handler=OnProcessIO(
+                target_action=pd_plus_trajectory_follower,
+                on_stdout=lambda event: (
+                    None
+                    if "Initial configuration reached."
+                    not in event.text.decode().strip()
+                    else record_rosbag_process
+                ),
+            )
+        ),
     ]
 
 
 def generate_launch_description():
-    return LaunchDescription(
+    declared_arguments = [
         DeclareLaunchArgument(
             "move_to_initial_configuration",
             default_value="true",
             description="Move the robot to initial configuration.",
         ),
-        generate_default_franka_args() + [OpaqueFunction(function=launch_setup)],
+        DeclareLaunchArgument(
+            "output_rosbag_path",
+            default_value="",
+            description="Path to which rosbags will be recorded.  Defaults to a timestamped folder in the current directory.",
+        ),
+    ]
+    return LaunchDescription(
+        declared_arguments
+        + generate_default_franka_args()
+        + [OpaqueFunction(function=launch_setup)],
     )

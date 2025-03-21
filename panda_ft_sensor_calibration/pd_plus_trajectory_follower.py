@@ -16,7 +16,6 @@ from rclpy.qos import (
     DurabilityPolicy,
     QoSProfile,
     ReliabilityPolicy,
-    qos_profile_sensor_data,
 )
 from rclpy.qos_overriding_options import QoSOverridingOptions
 from std_msgs.msg import String
@@ -39,10 +38,14 @@ class PDPlusTrajectoryFollower(Node):
             self.get_logger().error(str(e))
             raise e
 
+        lfc_qos_profile = QoSProfile(
+            depth=10,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+        )
         self._control_pub = self.create_publisher(
             Control,
             "/control",
-            qos_profile=qos_profile_sensor_data,
+            qos_profile=lfc_qos_profile,
             qos_overriding_options=QoSOverridingOptions.with_default_policies(),
         )
 
@@ -50,7 +53,7 @@ class PDPlusTrajectoryFollower(Node):
             Sensor,
             "/sensor",
             self._sensor_cb,
-            qos_profile=qos_profile_sensor_data,
+            qos_profile=lfc_qos_profile,
             qos_overriding_options=QoSOverridingOptions.with_default_policies(),
         )
 
@@ -59,7 +62,7 @@ class PDPlusTrajectoryFollower(Node):
                 Sensor,
                 "reference/sensor",
                 self._reference_sensor_cb,
-                qos_profile=qos_profile_sensor_data,
+                qos_profile=lfc_qos_profile,
                 qos_overriding_options=QoSOverridingOptions.with_default_policies(),
             )
 
@@ -77,20 +80,24 @@ class PDPlusTrajectoryFollower(Node):
         initial_configuration = np.array(
             [
                 self._params.get_entry(joint_name).q_init
-                for joint_name in self._params.moving_joints
+                for joint_name in self._params.moving_joint_names
             ]
         )
 
         self._robot_model: Union[pin.Model, None] = None
         self._robot_data: Union[pin.Data, None] = None
         self._sensor_msg: Union[Sensor, None] = None
-        self._reference_sensor_cb: Union[lfc_py_types.Sensor, None] = None
+        self._reference_sensor: Union[lfc_py_types.Sensor, None] = None
         self._initial_configuration = lfc_py_types.Sensor(
+            base_pose=np.zeros(7),
+            base_twist=np.zeros(6),
             joint_state=lfc_py_types.JointState(
+                name=[],
                 position=initial_configuration,
                 velocity=np.zeros_like(initial_configuration),
                 effort=np.zeros_like(initial_configuration),
-            )
+            ),
+            contacts=[],
         )
 
         self._initial_configuration_reached = False
@@ -124,13 +131,13 @@ class PDPlusTrajectoryFollower(Node):
             self._p_gains = np.array(
                 [
                     self._params.get_entry(joint_name).p
-                    for joint_name in self._params.moving_joints
+                    for joint_name in self._params.moving_joint_names
                 ]
             )
             self._d_gains = np.array(
                 [
                     self._params.get_entry(joint_name).d
-                    for joint_name in self._params.moving_joints
+                    for joint_name in self._params.moving_joint_names
                 ]
             )
             self._pd_gains = np.hstack((np.diag(self._p_gains), np.diag(self._d_gains)))
@@ -146,7 +153,7 @@ class PDPlusTrajectoryFollower(Node):
         locked_joint_names = [
             name
             for name in robot_model_full.names
-            if name not in self._moving_joint_names and name != "universe"
+            if name not in self._params.moving_joint_names and name != "universe"
         ]
 
         locked_joint_ids = [
@@ -178,7 +185,7 @@ class PDPlusTrajectoryFollower(Node):
             msg (linear_feedback_controller_msgs.msg.Sensor): Message containing
                 state of the robot.
         """
-        self._reference_sensor_cb = sensor_msg_to_numpy(msg)
+        self._reference_sensor = sensor_msg_to_numpy(msg)
 
     def _timer_callback(self) -> None:
         """Periodically called callback used to compute new control signal for the robot."""
@@ -207,29 +214,28 @@ class PDPlusTrajectoryFollower(Node):
             )
             return
 
+        self.get_logger().info("All data received. Executing motion...", once=True)
+
         sensor = sensor_msg_to_numpy(self._sensor_msg)
 
-        if (
-            self._move_to_initial_configuration
-            and not self._initial_configuration_reached
-        ):
+        if self._params.move_to_initial_configuration or self._params.recording_mode:
             target = self._initial_configuration
-            # Check if configuration was reached
-            if (
-                np.allclose(
-                    target.joint_state.position,
-                    sensor.joint_state.position,
-                    self._params.initial_configuration_tolerance,
-                )
-                and np.sum(np.abs(sensor.joint_state.velocity))
-                < self._params.initial_configuration_tolerance
-            ):
-                self._initial_configuration_reached = True
-                self.get_logger().info("Initial configuration reached.")
-                if self._params.recording_mode:
-                    self.get_logger().info("Robot is now controllable by human.")
-                else:
-                    self.get_logger().info("Starting to follow the trajectory.")
+            if not not self._initial_configuration_reached:
+                # Check if configuration was reached
+                config_diff = target.joint_state.position - sensor.joint_state.position
+                config_diff = np.minimum(2.0 * np.pi - config_diff, config_diff)
+                if (
+                    np.sum(np.abs(config_diff))
+                    < self._params.initial_configuration_tolerance
+                    and np.sum(np.abs(sensor.joint_state.velocity))
+                    < self._params.initial_configuration_tolerance
+                ):
+                    self._initial_configuration_reached = True
+                    self.get_logger().info("Initial configuration reached.")
+                    if self._params.recording_mode:
+                        self.get_logger().info("Robot is now controllable by human.")
+                    else:
+                        self.get_logger().info("Starting to follow the trajectory.")
         else:
             target = self._reference_sensor
             # In recording mode make easy to control and only slightly try to go back
@@ -245,44 +251,43 @@ class PDPlusTrajectoryFollower(Node):
             self._robot_model, self._robot_data, sensor.joint_state.position
         )
 
-        tau = (tau_g - self._p_gains * delta_q - self._d_gains * delta_dq).reshape(
-            self.pin_model.nv, 1
+        tau = (tau_g + self._p_gains * delta_q + self._d_gains * delta_dq).reshape(
+            self._robot_model.nv, 1
         )
 
         sensor = lfc_py_types.Sensor(
             base_pose=np.zeros(7),
             base_twist=np.zeros(6),
             joint_state=lfc_py_types.JointState(
-                name=self.moving_joint_names,
-                position=self.sensor.joint_state.position,
+                name=self._params.moving_joint_names,
+                position=sensor.joint_state.position,
                 velocity=np.zeros((self._robot_model.nv, 1)),
                 effort=np.zeros((self._robot_model.nv, 1)),
             ),
             contacts=[],
         )
 
-        if not self._params.recording_mode:
-            self._control_pub.publish(
-                control_numpy_to_msg(
-                    lfc_py_types.Control(
-                        feedback_gain=self._pd_gains,
-                        feedforward=tau,
-                        initial_state=sensor,
-                    )
+        self._control_pub.publish(
+            control_numpy_to_msg(
+                lfc_py_types.Control(
+                    feedback_gain=self._pd_gains,
+                    feedforward=tau,
+                    initial_state=sensor,
                 )
             )
+        )
 
 
 def main(args=None):
     rclpy.init(args=args)
-    pd_plus_controller = PDPlusTrajectoryFollower()
+    pl_plus_trajectory_follower = PDPlusTrajectoryFollower()
 
     try:
-        rclpy.spin(pd_plus_controller)
+        rclpy.spin(pl_plus_trajectory_follower)
     except KeyboardInterrupt:
         pass
 
-    pd_plus_controller.destroy_node()
+    pl_plus_trajectory_follower.destroy_node()
     if rclpy.ok():
         rclpy.shutdown()
 

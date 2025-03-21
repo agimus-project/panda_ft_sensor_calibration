@@ -24,11 +24,18 @@ setup(
     install_requires=["setuptools"],
     zip_safe=True,
     data_files=[
-        ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
+        (
+            "share/ament_index/resource_index/packages",
+            ["resource/pd_plus_trajectory_follower"],
+        ),
         ("share/" + package_name, ["package.xml"]),
         (
             f"share/{package_name}/launch",
             get_files(project_source_dir / "launch", "*.launch.py"),
+        ),
+        (
+            f"share/{package_name}/config",
+            get_files(project_source_dir / "config", "*"),
         ),
     ],
     maintainer="Krzysztof Wojciechowski",
