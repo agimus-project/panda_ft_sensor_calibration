@@ -10,9 +10,12 @@ from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
+    LogInfo,
     OpaqueFunction,
     RegisterEventHandler,
+    TimerAction,
 )
+from launch.conditions import UnlessCondition
 from launch.event_handlers import OnProcessExit, OnProcessIO, OnProcessStart
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -25,6 +28,11 @@ def launch_setup(
     output_rosbag_path = LaunchConfiguration("output_rosbag_path")
     input_rosbag_path = LaunchConfiguration("input_rosbag_path")
     rosbag_replay_rate = LaunchConfiguration("rosbag_replay_rate")
+    dry_run = LaunchConfiguration("dry_run")
+    replay_delay = LaunchConfiguration("replay_delay")
+    replay_delay_float = float(context.perform_substitution(replay_delay))
+    # Set delay to at least one second
+    replay_delay_float = max(replay_delay_float, 1.0)
 
     franka_robot_launch = generate_include_franka_launch("franka_common_lfc.launch.py")
 
@@ -71,6 +79,7 @@ def launch_setup(
             "/gripper/joint_states",
         ],
         output="screen",
+        condition=UnlessCondition(dry_run),
     )
 
     playback_rosbag_process = ExecuteProcess(
@@ -91,6 +100,13 @@ def launch_setup(
         output="screen",
     )
 
+    on_configuration_reached_actions = [
+        LogInfo(msg=f"Starting to replay rosbag in {replay_delay_float:.2f} seconds."),
+        TimerAction(replay_delay_float, playback_rosbag_process),
+        # Start recording rosbag 0.2 second before playing the trajectory
+        TimerAction(replay_delay_float - 0.2, record_rosbag_process),
+    ]
+
     return [
         franka_robot_launch,
         wait_for_non_zero_joints_node,
@@ -108,15 +124,8 @@ def launch_setup(
                     None
                     if "Initial configuration reached."
                     not in event.text.decode().strip()
-                    else [record_rosbag_process]
+                    else [on_configuration_reached_actions]
                 ),
-            )
-        ),
-        # Start playback once recording started
-        RegisterEventHandler(
-            event_handler=OnProcessStart(
-                target_action=record_rosbag_process,
-                on_start=playback_rosbag_process,
             )
         ),
     ]
@@ -132,7 +141,8 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "output_rosbag_path",
             default_value="",
-            description="Path to which rosbags will be recorded.  Defaults to a timestamped folder in the current directory.",
+            description="Path to which rosbags will be recorded. "
+            + "Defaults to a timestamped folder in the current directory.",
         ),
         DeclareLaunchArgument(
             "input_rosbag_path",
@@ -143,6 +153,17 @@ def generate_launch_description():
             "rosbag_replay_rate",
             default_value="1.0",
             description="Rate at which the rosbag is played.",
+        ),
+        DeclareLaunchArgument(
+            "replay_delay",
+            default_value="3.0",
+            description="Delay in seconds after reaching desired configuration "
+            + "to start replaying rosbag. If less than 1.0 second, will default to 1.0",
+        ),
+        DeclareLaunchArgument(
+            "dry_run",
+            default_value="false",
+            description="Perform a 'dry run' without recording a rosbag.",
         ),
     ]
     return LaunchDescription(

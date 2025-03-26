@@ -14,6 +14,7 @@ from launch.actions import (
     OpaqueFunction,
     RegisterEventHandler,
 )
+from launch.conditions import UnlessCondition
 from launch.event_handlers import OnProcessExit, OnProcessIO
 from launch.launch_description_entity import LaunchDescriptionEntity
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -24,6 +25,7 @@ def launch_setup(
 ) -> list[LaunchDescriptionEntity]:
     output_rosbag_path = LaunchConfiguration("output_rosbag_path")
     move_to_initial_configuration = LaunchConfiguration("move_to_initial_configuration")
+    dry_run = LaunchConfiguration("dry_run")
 
     franka_robot_launch = generate_include_franka_launch("franka_common_lfc.launch.py")
 
@@ -76,6 +78,7 @@ def launch_setup(
     record_rosbag_process = ExecuteProcess(
         cmd=["ros2", "bag", "record", "-o", output_rosbag_path, "/sensor/throttled"],
         output="screen",
+        condition=UnlessCondition(dry_run),
     )
 
     return [
@@ -115,6 +118,11 @@ def generate_launch_description():
             "output_rosbag_path",
             default_value="",
             description="Path to which rosbags will be recorded.  Defaults to a timestamped folder in the current directory.",
+        ),
+        DeclareLaunchArgument(
+            "dry_run",
+            default_value="false",
+            description="Perform a 'dry run' without recording a rosbag.",
         ),
     ]
     return LaunchDescription(
