@@ -88,6 +88,7 @@ class PDPlusTrajectoryFollower(Node):
         self._robot_data: Union[pin.Data, None] = None
         self._sensor_msg: Union[Sensor, None] = None
         self._reference_sensor: Union[lfc_py_types.Sensor, None] = None
+        self._integral = np.zeros(7)
         self._initial_configuration = lfc_py_types.Sensor(
             base_pose=np.zeros(7),
             base_twist=np.zeros(6),
@@ -99,6 +100,8 @@ class PDPlusTrajectoryFollower(Node):
             ),
             contacts=[],
         )
+
+        self._scale = 1.0
 
         self._initial_configuration_reached = False
 
@@ -137,6 +140,12 @@ class PDPlusTrajectoryFollower(Node):
             self._d_gains = np.array(
                 [
                     self._params.get_entry(joint_name).d
+                    for joint_name in self._params.moving_joint_names
+                ]
+            )
+            self._i_gains = np.array(
+                [
+                    self._params.get_entry(joint_name).i
                     for joint_name in self._params.moving_joint_names
                 ]
             )
@@ -243,12 +252,10 @@ class PDPlusTrajectoryFollower(Node):
                 if self._params.recording_mode:
                     # In recording mode make the robot easy to control
                     # and only slightly try to push it back to the initial position
-                    self._p_gains *= self._params.recording_mode_pd_scale
-                    self._pd_gains[: self._robot_model.nq, : self._robot_model.nq] *= (
-                        self._params.recording_mode_pd_scale
-                    )
+                    self._scale = self._params.recording_mode_pd_scale
                     self.get_logger().info("Robot is now controllable by human.")
                 else:
+                    self._reference_sensor = self._initial_configuration
                     self.get_logger().info("Starting to follow the trajectory.")
         else:
             if not self._params.recording_mode:
@@ -256,15 +263,22 @@ class PDPlusTrajectoryFollower(Node):
             else:
                 target = self._initial_configuration
 
-        delta_q = target.joint_state.position - sensor.joint_state.position
+        delta_q = pin.difference(
+            self._robot_model, sensor.joint_state.position, target.joint_state.position
+        )
         delta_dq = target.joint_state.velocity - sensor.joint_state.velocity
+
+        self._integral += delta_q
+
         tau_g = pin.computeGeneralizedGravity(
             self._robot_model, self._robot_data, sensor.joint_state.position
         )
 
-        tau = (tau_g + self._p_gains * delta_q + self._d_gains * delta_dq).reshape(
-            self._robot_model.nv, 1
-        )
+        tau = (
+            self._p_gains * delta_q
+            + self._d_gains * delta_dq
+            + self._integral * self._i_gains
+        ) * self._scale
 
         sensor = lfc_py_types.Sensor(
             base_pose=np.zeros(7),
@@ -281,8 +295,8 @@ class PDPlusTrajectoryFollower(Node):
         self._control_pub.publish(
             control_numpy_to_msg(
                 lfc_py_types.Control(
-                    feedback_gain=self._pd_gains,
-                    feedforward=tau,
+                    feedback_gain=np.zeros_like(self._pd_gains),
+                    feedforward=tau_g + tau,
                     initial_state=sensor,
                 )
             )

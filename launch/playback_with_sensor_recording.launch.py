@@ -40,7 +40,7 @@ def launch_setup(
         [
             FindPackageShare("panda_ft_sensor_calibration"),
             "config",
-            "pd_plus_trajectory_follower_params.yaml",
+            "pd_plus_trajectory_follower_replay_params.yaml",
         ]
     )
 
@@ -95,16 +95,16 @@ def launch_setup(
             "--remap",
             "/sensor/throttled:=/reference/sensor",
             "--wait-for-all-acked",
-            "10.0",
+            "10",
         ],
         output="screen",
     )
 
     on_configuration_reached_actions = [
         LogInfo(msg=f"Starting to replay rosbag in {replay_delay_float:.2f} seconds."),
-        TimerAction(replay_delay_float, playback_rosbag_process),
+        TimerAction(period=replay_delay_float, actions=[playback_rosbag_process]),
         # Start recording rosbag 0.2 second before playing the trajectory
-        TimerAction(replay_delay_float - 0.2, record_rosbag_process),
+        TimerAction(period=replay_delay_float - 0.2, actions=[record_rosbag_process]),
     ]
 
     return [
@@ -124,7 +124,7 @@ def launch_setup(
                     None
                     if "Initial configuration reached."
                     not in event.text.decode().strip()
-                    else [on_configuration_reached_actions]
+                    else on_configuration_reached_actions
                 ),
             )
         ),

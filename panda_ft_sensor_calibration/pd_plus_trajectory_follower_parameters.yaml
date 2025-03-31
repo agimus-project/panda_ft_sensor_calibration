@@ -16,6 +16,11 @@ pd_plus_trajectory_follower:
       description: "Derivation gains for the PD controller."
       validation:
         gt_eq<>: 0.0
+    i:
+      type: double
+      description: "Derivation gains for the PD controller."
+      validation:
+        gt_eq<>: 0.0
     q_init:
       type: double
       description: "Initial configuration of the joint."
