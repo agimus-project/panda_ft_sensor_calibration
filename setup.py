@@ -8,8 +8,13 @@ package_name = "panda_ft_sensor_calibration"
 project_source_dir = Path(__file__).parent
 
 module_name = "pd_plus_trajectory_follower_parameters"
-yaml_file = "panda_ft_sensor_calibration/pd_plus_trajectory_follower_parameters.yaml"
+yaml_file = f"{package_name}/pd_plus_trajectory_follower_parameters.yaml"
 generate_parameter_module(module_name, yaml_file)
+
+module_name = "reference_pose_publisher_parameters"
+yaml_file = f"{package_name}/reference_pose_publisher_parameters.yaml"
+validation_module = f"{package_name}.custom_validation"
+generate_parameter_module(module_name, yaml_file, validation_module)
 
 
 def get_files(dir: Path, pattern: str) -> List[str]:
@@ -25,8 +30,8 @@ setup(
     zip_safe=True,
     data_files=[
         (
-            "share/ament_index/resource_index/packages",
-            ["resource/pd_plus_trajectory_follower"],
+            "share/ament_index/resource_index/packages/resource",
+            get_files(project_source_dir / "resource", "*"),
         ),
         ("share/" + package_name, ["package.xml"]),
         (
@@ -45,6 +50,7 @@ setup(
     entry_points={
         "console_scripts": [
             "pd_plus_trajectory_follower = panda_ft_sensor_calibration.pd_plus_trajectory_follower:main",
+            "reference_pose_publisher = panda_ft_sensor_calibration.reference_pose_publisher:main",
         ],
     },
 )

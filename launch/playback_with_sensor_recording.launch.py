@@ -90,6 +90,8 @@ def launch_setup(
             input_rosbag_path,
             "-r",
             rosbag_replay_rate,
+            "-s",
+            "mcap",
             "--read-ahead-queue-size",
             "1000",
             "--remap",

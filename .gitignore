@@ -18,4 +18,5 @@ AMENT_IGNORE
 
 # Generated ROS parameters
 panda_ft_sensor_calibration/pd_plus_trajectory_follower_parameters.py
+panda_ft_sensor_calibration/reference_pose_publisher_parameters.py
 panda_ft_sensor_calibration/test/__pycache__

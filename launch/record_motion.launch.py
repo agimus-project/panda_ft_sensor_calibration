@@ -76,7 +76,16 @@ def launch_setup(
     )
 
     record_rosbag_process = ExecuteProcess(
-        cmd=["ros2", "bag", "record", "-o", output_rosbag_path, "/sensor/throttled"],
+        cmd=[
+            "ros2",
+            "bag",
+            "record",
+            "-o",
+            output_rosbag_path,
+            "-s",
+            "mcap",
+            "/sensor/throttled",
+        ],
         output="screen",
         condition=UnlessCondition(dry_run),
     )
