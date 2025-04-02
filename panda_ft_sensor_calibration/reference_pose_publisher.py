@@ -137,6 +137,7 @@ class ReferencePosePublisher(Node):
 
             self.get_logger().info(f"Reaching pose '{pose_name}'...")
             self._pose_cnt += 1
+            self._inner_iters = 1
             self._pose_reached = False
 
     def _control_timer_callback(self) -> None:
@@ -149,7 +150,8 @@ class ReferencePosePublisher(Node):
             return
         if self._joint_state_msg is None:
             self.get_logger().info(
-                "Waiting for the first sensor message...", throttle_duration_sec=2.0
+                "Waiting for the first joint state message...",
+                throttle_duration_sec=2.0,
             )
             return
 
@@ -169,56 +171,65 @@ class ReferencePosePublisher(Node):
                 self._joint_state_msg.name, self._joint_state_msg.position
             )
         }
-        q = np.array([joint_map[name] for name in self._params.moving_joint_names])
+        q0 = np.array([joint_map[name] for name in self._params.moving_joint_names])
+        q = np.copy(q0)
 
         trajectory_points = []
         for i in range(self._params.n_trajectory_points):
-            pin.framesForwardKinematics(self._robot_model, self._robot_data, q)
+            for _ in range(5):
+                pin.framesForwardKinematics(self._robot_model, self._robot_data, q)
 
-            pin.updateFramePlacement(
-                self._robot_model, self._robot_data, self._tcp_frame_id
-            )
-
-            rMf = (
-                self._robot_data.oMf[self._base_frame_id]
-                .actInv(self._robot_data.oMf[self._tcp_frame_id])
-                .actInv(self._target_pose)
-            )
-
-            err = pin.log6(rMf).vector
-
-            # If goal reached up to a tolerance, don't move
-            abs_err = np.abs(err)
-            if np.all(
-                abs_err[:3] < self._params.configuration_tolerance_pose
-            ) and np.all(abs_err[3:] < self._params.configuration_tolerance_rot):
-                if not self._pose_reached:
-                    self._pose_reached_stamp = self.get_clock().now()
-                    self.get_logger().info("Pose reached.")
-                self._pose_reached = True
-                v = np.zeros_like(q)
-            else:
-                fJf = pin.computeFrameJacobian(
-                    self._robot_model,
-                    self._robot_data,
-                    q,
-                    self._tcp_frame_id,
-                    pin.LOCAL,
+                pin.updateFramePlacement(
+                    self._robot_model, self._robot_data, self._tcp_frame_id
                 )
-                rJf = pin.Jlog6(rMf)
-                J = -rJf @ fJf
-                v = -J.T @ (np.linalg.solve(J @ J.T + 1e-12 * np.eye(6), err))
-                v_lim = np.ones_like(q) * self._params.max_angular_velocity
-                v = np.clip(v, -v_lim, v_lim)
 
-                q = pin.integrate(self._robot_model, q, v * self._dt)
+                rMf = (
+                    self._robot_data.oMf[self._base_frame_id]
+                    .actInv(self._robot_data.oMf[self._tcp_frame_id])
+                    .actInv(self._target_pose)
+                )
+
+                err = pin.log6(rMf).vector
+
+                # If goal reached up to a tolerance, don't move
+                abs_err = np.abs(err)
+
+                if np.all(
+                    abs_err[:3] < self._params.configuration_tolerance_pose
+                ) and np.all(abs_err[3:] < self._params.configuration_tolerance_rot):
+                    if not self._pose_reached:
+                        self._pose_reached_stamp = self.get_clock().now()
+                        self.get_logger().info("Pose reached.")
+                    self._pose_reached = True
+                    v = np.zeros_like(q)
+                    break
+                else:
+                    fJf = pin.computeFrameJacobian(
+                        self._robot_model,
+                        self._robot_data,
+                        q,
+                        self._tcp_frame_id,
+                        pin.LOCAL,
+                    )
+                    rJf = pin.Jlog6(rMf)
+                    J = -rJf @ fJf
+                    v = -J.T @ (np.linalg.solve(J @ J.T + 1e-12 * np.eye(6), err))
+                    q = pin.integrate(self._robot_model, q, v * self._dt)
+
+            q[0] *= 0.95
+
+            v = (q - q0) / self._dt
+            v_max = np.max(np.abs(v))
+            if v_max > self._params.max_angular_velocity:
+                v = v / v_max * self._params.max_angular_velocity
+            q = pin.integrate(self._robot_model, q0, v * self._dt)
 
             trajectory_points.append(
                 JointTrajectoryPoint(
                     positions=q,
                     velocities=v,
                     accelerations=np.zeros_like(q),
-                    time_from_start=Duration(seconds=self._dt * i).to_msg(),
+                    time_from_start=Duration(seconds=self._dt * (i + 1)).to_msg(),
                 )
             )
 
