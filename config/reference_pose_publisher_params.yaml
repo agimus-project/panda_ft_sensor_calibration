@@ -10,17 +10,26 @@
       - fer_joint7
     poses_to_reach_names:
       - down
+      - down_1
+      - down_reset
       - curled_perpendicular
       - up_stationary
       - up_right
-      - up_stationary
+      - up_stationary_reset
       - up_left
-      - streached
-      - up_stationary
+      - stretched
+      - up_stationary_reset
       - down
     down:
       xyz: [0.3, 0.0, 0.5]
       quat: [0.923, -0.382, 0.0, 0.0]
+    down_1:
+      xyz: [0.3, 0.0, 0.5]
+      quat: [0.923, 0.382, 0.0, 0.0]
+    down_reset:
+      xyz: [0.3, 0.0, 0.5]
+      quat: [0.923, -0.382, 0.0, 0.0]
+      intermittent: true
     curled_perpendicular:
       xyz: [0.4, 0.0, 0.3]
       quat: [0.653281, -0.270598, -0.653281, 0.270598]
@@ -30,14 +39,20 @@
     up_stationary:
       xyz: [0.4, 0.0, 0.5]
       quat: [0.92388, -0.382683, -2.34326e-17, 5.65713e-17]
+    up_stationary_reset:
+      xyz: [0.4, 0.0, 0.5]
+      quat: [0.92388, -0.382683, -2.34326e-17, 5.65713e-17]
+      intermittent: true
     up_right:
       xyz: [0.4, 0.0, 0.5]
       quat: [0.653281, -0.270598, 0.270598, 0.653281]
-    streached:
+    stretched:
       xyz: [0.1, 0.0, 0.8]
       quat: [0.653281, -0.270598, 0.653281, -0.270598]
     configuration_tolerance_pose: 0.04
     configuration_tolerance_rot: 0.1
+    intermittent_configuration_tolerance_pose: 0.1
+    intermittent_configuration_tolerance_rot: 0.2
     tcp_frame_id: fer_link8
     base_frame_id: fer_link0
     settle_time: 3.0

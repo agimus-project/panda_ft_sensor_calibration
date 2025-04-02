@@ -25,6 +25,11 @@ reference_pose_publisher:
         fixed_size<>: 4
         custom_validators::check_valid_quaternion:
       read_only: true
+    intermittent:
+      type: bool
+      default_value: false
+      description: "Given pose is intermittent. Do not wait and continue moving after reaching it."
+      read_only: true
   configuration_tolerance_pose:
     type: double
     default_value: 0.01
@@ -33,6 +38,20 @@ reference_pose_publisher:
       gt_eq<>: 0.0
     read_only: true
   configuration_tolerance_rot:
+    type: double
+    default_value: 0.01
+    description: "Absolute tolerance on frame placement in rad for each axis of rotation."
+    validation:
+      gt_eq<>: 0.0
+    read_only: true
+  intermittent_configuration_tolerance_pose:
+    type: double
+    default_value: 0.01
+    description: "Absolute tolerance on frame placement in meters."
+    validation:
+      gt_eq<>: 0.0
+    read_only: true
+  intermittent_configuration_tolerance_rot:
     type: double
     default_value: 0.01
     description: "Absolute tolerance on frame placement in rad for each axis of rotation."

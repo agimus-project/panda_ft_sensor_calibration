@@ -73,6 +73,9 @@ class ReferencePosePublisher(Node):
         self._tcp_frame_id = -1
         self._base_frame_id = -1
         self._pose_cnt = 0
+        self._is_intermittent = False
+        self._pose_tolerance = self._params.configuration_tolerance_pose
+        self._rot_tolerance = self._params.configuration_tolerance_rot
 
         self._target_pose: Union[pin.SE3, None] = None
 
@@ -134,6 +137,17 @@ class ReferencePosePublisher(Node):
                 pin.Quaternion(np.array(self._params.get_entry(pose_name).quat)),
                 np.array(self._params.get_entry(pose_name).xyz),
             )
+            self._is_intermittent = self._params.get_entry(pose_name).intermittent
+            if self._is_intermittent:
+                self._pose_tolerance = (
+                    self._params.intermittent_configuration_tolerance_pose
+                )
+                self._rot_tolerance = (
+                    self._params.intermittent_configuration_tolerance_rot
+                )
+            else:
+                self._pose_tolerance = self._params.configuration_tolerance_pose
+                self._rot_tolerance = self._params.configuration_tolerance_rot
 
             self.get_logger().info(f"Reaching pose '{pose_name}'...")
             self._pose_cnt += 1
@@ -194,11 +208,12 @@ class ReferencePosePublisher(Node):
                 # If goal reached up to a tolerance, don't move
                 abs_err = np.abs(err)
 
-                if np.all(
-                    abs_err[:3] < self._params.configuration_tolerance_pose
-                ) and np.all(abs_err[3:] < self._params.configuration_tolerance_rot):
+                if np.all(abs_err[:3] < self._pose_tolerance) and np.all(
+                    abs_err[3:] < self._rot_tolerance
+                ):
                     if not self._pose_reached:
-                        self._pose_reached_stamp = self.get_clock().now()
+                        if not self._is_intermittent:
+                            self._pose_reached_stamp = self.get_clock().now()
                         self.get_logger().info("Pose reached.")
                     self._pose_reached = True
                     v = np.zeros_like(q)
