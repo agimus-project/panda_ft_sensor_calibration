@@ -14,7 +14,7 @@ from rclpy.qos import (
 )
 from rclpy.qos_overriding_options import QoSOverridingOptions
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Header, String
+from std_msgs.msg import Empty, Header, String
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 # Automatically generated file
@@ -44,6 +44,10 @@ class ReferencePosePublisher(Node):
             qos_profile=jtc_qos_profile,
             qos_overriding_options=QoSOverridingOptions.with_default_policies(),
         )
+
+        self._new_pose_pub = self.create_publisher(Empty, "/moving_to_new_pose", 10)
+
+        self._pose_reached_pub = self.create_publisher(Empty, "/pose_reached", 10)
 
         self._joint_states_sub = self.create_subscription(
             JointState,
@@ -150,6 +154,7 @@ class ReferencePosePublisher(Node):
                 self._rot_tolerance = self._params.configuration_tolerance_rot
 
             self.get_logger().info(f"Reaching pose '{pose_name}'...")
+            self._new_pose_pub.publish(Empty())
             self._pose_cnt += 1
             self._inner_iters = 1
             self._pose_reached = False
@@ -182,7 +187,8 @@ class ReferencePosePublisher(Node):
         joint_map = {
             name: position
             for name, position in zip(
-                self._joint_state_msg.name, self._joint_state_msg.position
+                self._joint_state_msg.name,
+                self._joint_state_msg.position,
             )
         }
         q0 = np.array([joint_map[name] for name in self._params.moving_joint_names])
@@ -190,7 +196,7 @@ class ReferencePosePublisher(Node):
 
         trajectory_points = []
         for i in range(self._params.n_trajectory_points):
-            for _ in range(20):
+            for j in range(int(200 // (i + 1)) + 1):
                 pin.framesForwardKinematics(self._robot_model, self._robot_data, q)
 
                 pin.updateFramePlacement(
@@ -211,11 +217,14 @@ class ReferencePosePublisher(Node):
                 if np.all(abs_err[:3] < self._pose_tolerance) and np.all(
                     abs_err[3:] < self._rot_tolerance
                 ):
-                    if not self._pose_reached:
-                        if not self._is_intermittent:
-                            self._pose_reached_stamp = self.get_clock().now()
-                        self.get_logger().info("Pose reached.")
-                    self._pose_reached = True
+                    if i == 0 and j == 0:
+                        if not self._pose_reached:
+                            if not self._is_intermittent:
+                                self._pose_reached_stamp = self.get_clock().now()
+                            self._pose_reached_pub.publish(Empty())
+                            self.get_logger().info("Pose reached.")
+                        self._pose_reached = True
+                    # v = np.zeros_like(q)
                 fJf = pin.computeFrameJacobian(
                     self._robot_model,
                     self._robot_data,

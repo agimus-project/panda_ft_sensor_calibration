@@ -84,9 +84,36 @@ def launch_setup(
         output="screen",
     )
 
+    record_rosbag_process = ExecuteProcess(
+        cmd=[
+            "ros2",
+            "bag",
+            "record",
+            "-s",
+            "mcap",
+            "/franka/joint_states",
+            "/moving_to_new_pose",
+            "/pose_reached",
+            "/force_torque_sensor_broadcaster/wrench",
+        ],
+        output="screen",
+    )
+
     return [
         franka_robot_launch,
         reference_pose_publisher,
+        RegisterEventHandler(
+            event_handler=OnProcessIO(
+                target_action=reference_pose_publisher,
+                # log info is directed to stderr
+                on_stderr=lambda event: (
+                    None
+                    if "All data received. Moving to first target..."
+                    not in event.text.decode().strip()
+                    else [record_rosbag_process]
+                ),
+            )
+        ),
     ]
 
 
