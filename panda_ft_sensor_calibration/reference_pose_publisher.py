@@ -190,7 +190,7 @@ class ReferencePosePublisher(Node):
 
         trajectory_points = []
         for i in range(self._params.n_trajectory_points):
-            for _ in range(5):
+            for _ in range(20):
                 pin.framesForwardKinematics(self._robot_model, self._robot_data, q)
 
                 pin.updateFramePlacement(
@@ -216,20 +216,17 @@ class ReferencePosePublisher(Node):
                             self._pose_reached_stamp = self.get_clock().now()
                         self.get_logger().info("Pose reached.")
                     self._pose_reached = True
-                    v = np.zeros_like(q)
-                    break
-                else:
-                    fJf = pin.computeFrameJacobian(
-                        self._robot_model,
-                        self._robot_data,
-                        q,
-                        self._tcp_frame_id,
-                        pin.LOCAL,
-                    )
-                    rJf = pin.Jlog6(rMf)
-                    J = -rJf @ fJf
-                    v = -J.T @ (np.linalg.solve(J @ J.T + 1e-12 * np.eye(6), err))
-                    q = pin.integrate(self._robot_model, q, v * self._dt)
+                fJf = pin.computeFrameJacobian(
+                    self._robot_model,
+                    self._robot_data,
+                    q,
+                    self._tcp_frame_id,
+                    pin.LOCAL,
+                )
+                rJf = pin.Jlog6(rMf)
+                J = -rJf @ fJf
+                v = -J.T @ (np.linalg.solve(J @ J.T + 1e-12 * np.eye(6), err))
+                q = pin.integrate(self._robot_model, q, v * self._dt)
 
             q[0] *= 0.95
 
