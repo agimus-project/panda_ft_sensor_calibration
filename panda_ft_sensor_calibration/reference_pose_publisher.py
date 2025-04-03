@@ -14,7 +14,7 @@ from rclpy.qos import (
 )
 from rclpy.qos_overriding_options import QoSOverridingOptions
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Empty, Header, String
+from std_msgs.msg import Header, String
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 # Automatically generated file
@@ -45,9 +45,9 @@ class ReferencePosePublisher(Node):
             qos_overriding_options=QoSOverridingOptions.with_default_policies(),
         )
 
-        self._new_pose_pub = self.create_publisher(Empty, "/moving_to_new_pose", 10)
+        self._new_pose_pub = self.create_publisher(String, "/moving_to_new_pose", 10)
 
-        self._pose_reached_pub = self.create_publisher(Empty, "/pose_reached", 10)
+        self._pose_reached_pub = self.create_publisher(String, "/pose_reached", 10)
 
         self._joint_states_sub = self.create_subscription(
             JointState,
@@ -80,6 +80,8 @@ class ReferencePosePublisher(Node):
         self._is_intermittent = False
         self._pose_tolerance = self._params.configuration_tolerance_pose
         self._rot_tolerance = self._params.configuration_tolerance_rot
+        self._regulate_joint_zero = True
+        self._current_pose_name = ""
 
         self._target_pose: Union[pin.SE3, None] = None
 
@@ -137,11 +139,15 @@ class ReferencePosePublisher(Node):
             self.get_clock().now() - self._pose_reached_stamp
         ) > Duration(seconds=self._params.settle_time):
             pose_name = self._params.poses_to_reach_names[self._pose_cnt]
+            self._current_pose_name = pose_name
             self._target_pose = pin.SE3(
                 pin.Quaternion(np.array(self._params.get_entry(pose_name).quat)),
                 np.array(self._params.get_entry(pose_name).xyz),
             )
             self._is_intermittent = self._params.get_entry(pose_name).intermittent
+            self._regulate_joint_zero = self._params.get_entry(
+                pose_name
+            ).regulate_joint_zero
             if self._is_intermittent:
                 self._pose_tolerance = (
                     self._params.intermittent_configuration_tolerance_pose
@@ -154,7 +160,7 @@ class ReferencePosePublisher(Node):
                 self._rot_tolerance = self._params.configuration_tolerance_rot
 
             self.get_logger().info(f"Reaching pose '{pose_name}'...")
-            self._new_pose_pub.publish(Empty())
+            self._new_pose_pub.publish(String(data=self._current_pose_name))
             self._pose_cnt += 1
             self._inner_iters = 1
             self._pose_reached = False
@@ -219,9 +225,11 @@ class ReferencePosePublisher(Node):
                 ):
                     if i == 0 and j == 0:
                         if not self._pose_reached:
+                            self._pose_reached_pub.publish(
+                                String(data=self._current_pose_name)
+                            )
                             if not self._is_intermittent:
                                 self._pose_reached_stamp = self.get_clock().now()
-                            self._pose_reached_pub.publish(Empty())
                             self.get_logger().info("Pose reached.")
                         self._pose_reached = True
                     # v = np.zeros_like(q)
@@ -235,9 +243,9 @@ class ReferencePosePublisher(Node):
                 rJf = pin.Jlog6(rMf)
                 J = -rJf @ fJf
                 v = -J.T @ (np.linalg.solve(J @ J.T + 1e-12 * np.eye(6), err))
+                if self._regulate_joint_zero:
+                    q[0] *= 0.9
                 q = pin.integrate(self._robot_model, q, v * self._dt)
-
-            q[0] *= 0.95
 
             v = (q - q0) / self._dt
             v_max = np.max(np.abs(v))

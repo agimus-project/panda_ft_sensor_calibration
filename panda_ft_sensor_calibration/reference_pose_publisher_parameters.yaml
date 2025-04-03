@@ -30,6 +30,11 @@ reference_pose_publisher:
       default_value: false
       description: "Given pose is intermittent. Do not wait and continue moving after reaching it."
       read_only: true
+    regulate_joint_zero:
+      type: bool
+      default_value: true
+      description: "Drive joint number 0 towards value 0.0 to constrain it."
+      read_only: true
   configuration_tolerance_pose:
     type: double
     default_value: 0.01

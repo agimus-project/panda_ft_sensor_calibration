@@ -9,67 +9,71 @@
       - fer_joint6
       - fer_joint7
     poses_to_reach_names:
-      - down_0_reset
+      - down_0_transition
       - down_1
       - down_0
       - down_2
-      - down_0_reset
-      - curled_0_reset
+      - down_0_transition
+      - up_side_down_transition
+      - up_side_down_0_transition
+      - up_side_down_1
+      - up_side_down_0_transition
+      - up_side_down_2
+      - up_side_down_0
+      - up_side_down_transition
+      - down_0_transition
+      - curled_0_transition
       - curled_1
       - curled_0
       - curled_2
-      - curled_0_reset
-      - down_0_reset
+      - curled_0_transition
+      - down_0_transition
       - up_right_0
       - up_right_1
       - up_right_2
       - up_right_3
-      - up_right_2_reset
-      - up_right_1_reset
+      - up_right_2_transition
+      - up_right_1_transition
       - stretched_0
       - stretched_1
       - stretched_2
-      - stretched_1_reset
-      - stretched_0_reset
+      - stretched_1_transition
+      - stretched_0_transition
       - stretched_3
-      - stretched_0_reset
-      # - up_0
-      # - up_1
-      # - up_0_reset
-      # - up_2
-      # - up_0_reset
-      # - stretched_0_reset
-      - down_0_reset
+      - stretched_0_transition
+      - down_0_transition
       - down_1
       - down_0
       - down_2
-      - down_0_reset
-      - curled_0_reset
+      - down_0_transition
+      - up_side_down_transition
+      - up_side_down_0_transition
+      - up_side_down_1
+      - up_side_down_0_transition
+      - up_side_down_2
+      - up_side_down_0
+      - up_side_down_transition
+      - down_0_transition
+      - curled_0_transition
       - curled_1
       - curled_0
       - curled_2
-      - curled_0_reset
-      - down_0_reset
+      - curled_0_transition
+      - down_0_transition
       - up_right_0
       - up_right_1
       - up_right_2
       - up_right_3
-      - up_right_2_reset
-      - up_right_1_reset
+      - up_right_2_transition
+      - up_right_1_transition
       - stretched_0
       - stretched_1
       - stretched_2
-      - stretched_1_reset
-      - stretched_0_reset
+      - stretched_1_transition
+      - stretched_0_transition
       - stretched_3
-      - stretched_0_reset
-      # - up_0
-      # - up_1
-      # - up_0_reset
-      # - up_2
-      # - up_0_reset
-      # - stretched_0_reset
-      - down_0_reset
+      - stretched_0_transition
+      - down_0_transition
     down_0:
       xyz: [0.3, 0.0, 0.5]
       quat: [0.923, -0.382, 0.0, 0.0]
@@ -79,14 +83,14 @@
     down_2:
       xyz: [0.3, 0.0, 0.5]
       quat: [0.923, 0.382, 0.0, 0.0]
-    down_0_reset:
+    down_0_transition:
       xyz: [0.3, 0.0, 0.5]
       quat: [0.923, -0.382, 0.0, 0.0]
       intermittent: true
     curled_0:
       xyz: [0.3, 0.0, 0.25]
       quat: [0.653281, -0.270598, -0.653281, 0.270598]
-    curled_0_reset:
+    curled_0_transition:
       xyz: [0.3, 0.0, 0.25]
       quat: [0.653281, -0.270598, -0.653281, 0.270598]
       intermittent: true
@@ -102,14 +106,14 @@
     up_right_1:
       xyz: [0.4, -0.1, 0.8]
       quat: [0.653281, -0.270598, 0.270598, 0.653281]
-    up_right_1_reset:
+    up_right_1_transition:
       xyz: [0.4, -0.1, 0.8]
       quat: [0.653281, -0.270598, 0.270598, 0.653281]
       intermittent: true
     up_right_2:
       xyz: [0.4, -0.1, 0.8]
       quat: [0.653281, 0.270598, -0.270598, 0.653281]
-    up_right_2_reset:
+    up_right_2_transition:
       xyz: [0.4, -0.1, 0.8]
       quat: [0.653281, 0.270598, -0.270598, 0.653281]
       intermittent: true
@@ -119,14 +123,14 @@
     stretched_0:
       xyz: [0.0, 0.0, 1.0]
       quat: [0.653281, -0.270598, 0.653281, -0.270598]
-    stretched_0_reset:
+    stretched_0_transition:
       xyz: [0.0, 0.0, 1.0]
       quat: [0.653281, -0.270598, 0.653281, -0.270598]
       intermittent: true
     stretched_1:
       xyz: [0.0, 0.0, 1.0]
       quat: [0.653281, 0.270598, 0.653281, 0.270598]
-    stretched_1_reset:
+    stretched_1_transition:
       xyz: [0.0, 0.0, 1.0]
       quat: [0.653281, 0.270598, 0.653281, 0.270598]
       intermittent: true
@@ -139,27 +143,49 @@
     up_0:
       xyz: [-0.5, 0.0, 1.0]
       quat: [0.0, 0.0, 0.92388, -0.382683]
-    up_0_reset:
+    up_0_transition:
       xyz: [-0.5, 0.0, 1.0]
       quat: [0.0, 0.0, 0.92388, -0.382683]
       intermittent: true
     up_1:
       xyz: [-0.5, 0.0, 1.0]
       quat: [0.0, 0.0, -0.382683, 0.92388]
-    up_1_reset:
+    up_1_transition:
       xyz: [-0.5, 0.0, 1.0]
       quat: [0.0, 0.0, -0.382683, 0.92388]
       intermittent: true
     up_2:
       xyz: [-0.5, 0.0, 1.0]
       quat: [0.0, 0.0, 0.92388, 0.382683]
-    configuration_tolerance_pose: 0.04
+    up_side_down_0:
+      xyz: [0.7, 0.0, 0.45]
+      quat: [0.0, 0.0, 0.382683, 0.92388]
+      regulate_joint_zero: false
+    up_side_down_0_transition:
+      xyz: [0.7, 0.0, 0.45]
+      quat: [0.0, 0.0, 0.382683, 0.92388]
+      intermittent: true
+      regulate_joint_zero: false
+    up_side_down_1:
+      xyz: [0.7, 0.0, 0.45]
+      quat: [0.0, 0.0, 0.92388, 0.382683]
+      regulate_joint_zero: false
+    up_side_down_2:
+      xyz: [0.7, 0.0, 0.45]
+      quat: [0.0, 0.0, -0.382683, 0.92388]
+      regulate_joint_zero: false
+    up_side_down_transition:
+      xyz: [0.689, -0.123, 0.378]
+      quat: [-0.652, 0.282, 0.265, 0.652]
+      regulate_joint_zero: false
+      intermittent: true
+    configuration_tolerance_pose: 0.02
     configuration_tolerance_rot: 0.07
     intermittent_configuration_tolerance_pose: 0.1
     intermittent_configuration_tolerance_rot: 0.2
     tcp_frame_id: fer_link8
     base_frame_id: fer_link0
-    settle_time: 15.0
+    settle_time: 5.0
     controller_frequency: 50.0
     n_trajectory_points: 4
     max_angular_velocity: 1.0
