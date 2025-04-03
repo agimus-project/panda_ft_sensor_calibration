@@ -185,7 +185,7 @@
     intermittent_configuration_tolerance_rot: 0.2
     tcp_frame_id: fer_link8
     base_frame_id: fer_link0
-    settle_time: 5.0
+    settle_time: 20.0
     controller_frequency: 50.0
     n_trajectory_points: 4
     max_angular_velocity: 1.0
