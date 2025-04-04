@@ -292,15 +292,17 @@ class PDPlusTrajectoryFollower(Node):
             contacts=[],
         )
 
-        self._control_pub.publish(
-            control_numpy_to_msg(
-                lfc_py_types.Control(
-                    feedback_gain=np.zeros_like(self._pd_gains),
-                    feedforward=tau_g + tau,
-                    initial_state=sensor,
-                )
+        cmd = control_numpy_to_msg(
+            lfc_py_types.Control(
+                feedback_gain=np.zeros_like(self._pd_gains),
+                feedforward=tau_g + tau,
+                initial_state=sensor,
             )
         )
+
+        cmd.header.stamp = self.get_clock().now().to_msg()
+
+        self._control_pub.publish(cmd)
 
 
 def main(args=None):

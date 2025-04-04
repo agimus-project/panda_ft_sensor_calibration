@@ -76,7 +76,7 @@ def launch_setup(
             "/sensor",
             "/robot_description",
             "/franka/joint_states",
-            "/gripper/joint_states",
+            "/force_torque_sensor_broadcaster/wrench",
         ],
         output="screen",
         condition=UnlessCondition(dry_run),
