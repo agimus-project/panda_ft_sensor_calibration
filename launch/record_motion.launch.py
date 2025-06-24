@@ -85,6 +85,7 @@ def launch_setup(
             "-s",
             "mcap",
             "/sensor/throttled",
+            "/robot_description",
         ],
         output="screen",
         condition=UnlessCondition(dry_run),

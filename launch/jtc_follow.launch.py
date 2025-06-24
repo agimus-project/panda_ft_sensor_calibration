@@ -26,6 +26,9 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 def launch_setup(
     context: LaunchContext, *args, **kwargs
 ) -> list[LaunchDescriptionEntity]:
+    output_rosbag_path = LaunchConfiguration("output_rosbag_path")
+    dry_run = LaunchConfiguration("dry_run")
+
     joint_trajectory_controller_params = PathJoinSubstitution(
         [
             FindPackageShare("panda_ft_sensor_calibration"),
@@ -91,12 +94,16 @@ def launch_setup(
             "record",
             "-s",
             "mcap",
+            "-o",
+            output_rosbag_path,
             "/franka/joint_states",
             "/moving_to_new_pose",
             "/pose_reached",
             "/force_torque_sensor_broadcaster/wrench",
+            "/robot_description",
         ],
         output="screen",
+        condition=UnlessCondition(dry_run),
     )
 
     return [
@@ -120,31 +127,10 @@ def launch_setup(
 def generate_launch_description():
     declared_arguments = [
         DeclareLaunchArgument(
-            "move_to_initial_configuration",
-            default_value="true",
-            description="Move the robot to initial configuration.",
-        ),
-        DeclareLaunchArgument(
             "output_rosbag_path",
             default_value="",
             description="Path to which rosbags will be recorded. "
             + "Defaults to a timestamped folder in the current directory.",
-        ),
-        DeclareLaunchArgument(
-            "input_rosbag_path",
-            default_value="",
-            description="Path from which rosbag containing desired motion will be played back.",
-        ),
-        DeclareLaunchArgument(
-            "rosbag_replay_rate",
-            default_value="1.0",
-            description="Rate at which the rosbag is played.",
-        ),
-        DeclareLaunchArgument(
-            "replay_delay",
-            default_value="3.0",
-            description="Delay in seconds after reaching desired configuration "
-            + "to start replaying rosbag. If less than 1.0 second, will default to 1.0",
         ),
         DeclareLaunchArgument(
             "dry_run",

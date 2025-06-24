@@ -5,11 +5,11 @@
   <name>panda_ft_sensor_calibration</name>
   <version>0.0.0</version>
   <description>Force-Torque sensor calibration procedures for Panda robot used in Agimus project</description>
-  <maintainer email="kwojciecho@laas.fr">Krzysztof Wojciechowski</maintainer>
+  <maintainer email="guilhem.saurel@laas.fr">Guilhem Saurel</maintainer>
   <author email="kwojciecho@laas.fr">Krzysztof Wojciechowski</author>
 
   <license>BSD-3-clause</license>
-  <url type="website">https://github.com/agimus-project/agimus_controller</url>
+  <url type="website">https://github.com/agimus-project/panda_ft_sensor_calibration</url>
 
   <build_depend>generate_parameter_library</build_depend>
   <build_depend>generate_parameter_library_py</build_depend>

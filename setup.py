@@ -43,9 +43,9 @@ setup(
             get_files(project_source_dir / "config", "*"),
         ),
     ],
-    maintainer="Krzysztof Wojciechowski",
-    maintainer_email="kwojciecho@laas.fr",
-    description="ROS2 agimus_controller package",
+    maintainer="Guilhem Saurel",
+    maintainer_email="guilhem.saurel@laas.fr",
+    description="Force-Torque sensor calibration procedures for Panda robot used in Agimus project",
     license="BSD",
     entry_points={
         "console_scripts": [
