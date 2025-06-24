@@ -1,0 +1,48 @@
+/**:
+  ros__parameters:
+    moving_joint_names:
+      - fer_joint1
+      - fer_joint2
+      - fer_joint3
+      - fer_joint4
+      - fer_joint5
+      - fer_joint6
+      - fer_joint7
+    fer_joint1:
+      p: 60.0
+      d: 20.0
+      i: 0.01
+      q_init: 0.0
+    fer_joint2:
+      p: 60.0
+      d: 20.0
+      i: 0.01
+      q_init: -0.785
+    fer_joint3:
+      p: 60.0
+      d: 20.0
+      i: 0.01
+      q_init: 0.0
+    fer_joint4:
+      p: 50.0
+      d: 20.0
+      i: 0.01
+      q_init: -2.35
+    fer_joint5:
+      p: 20.0
+      d: 20.0
+      i: 0.01
+      q_init: 0.0
+    fer_joint6:
+      p: 1.0
+      d: 3.0
+      i: 0.01
+      q_init: 1.57
+    fer_joint7:
+      p: 1.0
+      d: 3.0
+      i: 0.01
+      q_init: 0.785
+    recording_mode_pd_scale: 0.0
+    controller_frequency: 200.0
+    initial_configuration_tolerance: 0.1

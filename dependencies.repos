@@ -1,0 +1,35 @@
+repositories:
+    vcs_repos/agimus_demos:
+        type: git
+        url: https://github.com/agimus-project/agimus-demos/
+        version: humble-devel
+
+    vcs_repos/libfranka:
+        type: git
+        url: https://github.com/agimus-project/libfranka
+        version: humble
+
+    vcs_repos/franka_ros2:
+        type: git
+        url: https://github.com/agimus-project/franka_ros2
+        version: humble
+
+    vcs_repos/franka_description:
+        type: git
+        url: https://github.com/agimus-project/franka_description
+        version: humble-devel
+
+    vcs_repos/linear-feedback-controller:
+        type: git
+        url: https://github.com/loco-3d/linear-feedback-controller
+        version: humble-devel
+
+    vcs_repos/ros2_net_ft_driver:
+        type: git
+        url: https://github.com/gbartyzel/ros2_net_ft_driver
+        version: rolling
+
+    vcs_repos/rosbag2pandas:
+        type: git
+        url: https://github.com/Kotochleb/rosbag2pandas
+        version: main

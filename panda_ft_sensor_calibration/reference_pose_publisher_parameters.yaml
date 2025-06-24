@@ -1,0 +1,107 @@
+reference_pose_publisher:
+  moving_joint_names:
+    type: string_array
+    description: "List of active joint names used by the controller."
+    read_only: true
+    validation:
+      not_empty<>: []
+  poses_to_reach_names:
+    type: string_array
+    description: "List of names poses for the robot to reach."
+    read_only: true
+    validation:
+      not_empty<>: []
+  __map_poses_to_reach_names:
+    xyz:
+      type: double_array
+      description: "Proportional gains for the PD controller."
+      validation:
+        fixed_size<>: 3
+      read_only: true
+    quat:
+      type: double_array
+      description: "Derivation gains for the PD controller."
+      validation:
+        fixed_size<>: 4
+        custom_validators::check_valid_quaternion:
+      read_only: true
+    intermittent:
+      type: bool
+      default_value: false
+      description: "Given pose is intermittent. Do not wait and continue moving after reaching it."
+      read_only: true
+    regulate_joint_zero:
+      type: bool
+      default_value: true
+      description: "Drive joint number 0 towards value 0.0 to constrain it."
+      read_only: true
+  configuration_tolerance_pose:
+    type: double
+    default_value: 0.01
+    description: "Absolute tolerance on frame placement in meters."
+    validation:
+      gt_eq<>: 0.0
+    read_only: true
+  configuration_tolerance_rot:
+    type: double
+    default_value: 0.01
+    description: "Absolute tolerance on frame placement in rad for each axis of rotation."
+    validation:
+      gt_eq<>: 0.0
+    read_only: true
+  intermittent_configuration_tolerance_pose:
+    type: double
+    default_value: 0.01
+    description: "Absolute tolerance on frame placement in meters."
+    validation:
+      gt_eq<>: 0.0
+    read_only: true
+  intermittent_configuration_tolerance_rot:
+    type: double
+    default_value: 0.01
+    description: "Absolute tolerance on frame placement in rad for each axis of rotation."
+    validation:
+      gt_eq<>: 0.0
+    read_only: true
+  tcp_frame_id:
+    type: string
+    default_value: "fer_link8"
+    description: "Name of the TCP frame to align."
+    validation:
+      not_empty<>:
+    read_only: true
+  base_frame_id:
+    type: string
+    default_value: "fer_link0"
+    description: "Name of the frame used as a base for frame alignment."
+    validation:
+      not_empty<>:
+    read_only: true
+  settle_time:
+    type: double
+    default_value: 5.0
+    description: "Time to wait after setting on pose before switching to a new target."
+    validation:
+      gt_eq<>: 0.0
+    read_only: true
+  controller_frequency:
+    type: double
+    default_value: 50.0
+    description: "Frequency at which controller will be running."
+    validation:
+      gt_eq<>: 0.0
+    read_only: true
+  n_trajectory_points:
+    type: int
+    default_value: 5
+    description: "Number of trajectory points sent to JTC."
+    validation:
+      gt_eq<>: 0
+    read_only: true
+  max_angular_velocity:
+    type: double
+    default_value: 0.314
+    description: "Maximum angular velocity [rad]."
+    validation:
+      gt_eq<>: 0.0
+    read_only: true
