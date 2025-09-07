@@ -1,6 +1,5 @@
 from agimus_demos_common.launch_utils import (
     generate_default_franka_args,
-    generate_include_franka_launch,
     get_use_sim_time,
 )
 from launch_ros.actions import Node
@@ -48,6 +47,7 @@ def launch_setup(
                     [
                         FindPackageShare("agimus_demos_common"),
                         "launch",
+                        "franka",
                         "franka_common.launch.py",
                     ]
                 )
@@ -59,6 +59,8 @@ def launch_setup(
             "aux_computer_user": LaunchConfiguration("aux_computer_user"),
             "on_aux_computer": LaunchConfiguration("on_aux_computer"),
             "robot_ip": LaunchConfiguration("robot_ip"),
+            "use_ft_sensor": "true",
+            "ft_sensor_ip": LaunchConfiguration("ft_sensor_ip"),
             "disable_collision_safety": LaunchConfiguration("disable_collision_safety"),
             "external_controllers_params": joint_trajectory_controller_params,
             "external_controllers_names": str(joint_trajectory_controller_names),
